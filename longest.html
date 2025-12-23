@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sliding Window Visualizer</title>
+
+<style>
+/* 🎨 COLOR PALETTE */
+:root {
+  --cream: #FEEAC9;
+  --peach: #FEE0C9;
+  --rose:  #FEC2C0;
+  --coral: #FD8D8D;
+  --text:  #333333;
+}
+
+/* 🌍 RESET */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* 🌸 BODY */
+body {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  background: linear-gradient(180deg, var(--cream), var(--peach));
+  min-height: 100vh;
+  color: var(--text);
+}
+
+/* 🧭 HEADER */
+header {
+  padding: 22px;
+  text-align: center;
+  background: var(--peach);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+}
+
+header h1 {
+  font-size: 30px;
+}
+
+header p {
+  font-size: 16px;
+  opacity: 0.85;
+}
+
+/* 🧩 MAIN CARD */
+.main {
+  max-width: 1100px;
+  margin: 35px auto;
+  background: var(--cream);
+  border-radius: 22px;
+  padding: 30px;
+  box-shadow: 0 20px 45px rgba(0,0,0,0.18);
+}
+
+/* 📝 INPUT */
+.input-section {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+input[type="text"] {
+  padding: 12px;
+  font-size: 16px;
+  width: 300px;
+  border-radius: 12px;
+  border: 2px solid var(--rose);
+  background: var(--peach);
+  outline: none;
+}
+
+/* 🔘 BUTTONS */
+button {
+  padding: 12px 20px;
+  font-size: 15px;
+  margin: 6px;
+  border-radius: 12px;
+  border: none;
+  background: var(--rose);
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+button:hover {
+  background: var(--coral);
+  color: white;
+  transform: translateY(-2px);
+}
+
+button:disabled {
+  background: #ddd;
+  cursor: not-allowed;
+}
+
+/* 🎚 CONTROLS */
+.controls {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* 🎭 VISUAL AREA */
+.container {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 35px;
+  flex-wrap: wrap;
+}
+
+/* 🧱 CHAR BOX */
+.char-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 🔤 CHARACTER */
+.char {
+  width: 62px;
+  height: 62px;
+  line-height: 62px;
+  font-size: 22px;
+  border-radius: 16px;
+  background: var(--peach);
+  border: 2px solid var(--rose);
+  transition: 0.35s;
+}
+
+/* 🌿 ACTIVE WINDOW */
+.window {
+  background: var(--rose);
+  box-shadow: 0 0 18px var(--rose);
+  transform: scale(1.15);
+}
+
+/* 🚨 DUPLICATE */
+.duplicate {
+  background: var(--coral);
+  color: white;
+  animation: pulse 0.6s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* 👉 POINTER */
+.pointer {
+  margin-top: 6px;
+  font-weight: bold;
+  background: white;
+  padding: 3px 8px;
+  border-radius: 6px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.15);
+}
+
+/* 🎯 STATUS */
+.action {
+  margin-top: 25px;
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* ℹ️ INFO */
+.info {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 30px;
+  font-size: 17px;
+  flex-wrap: wrap;
+}
+
+/* 🦶 FOOTER */
+footer {
+  text-align: center;
+  padding: 15px;
+  margin-top: 30px;
+  background: var(--peach);
+  font-size: 14px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>Sliding Window Visualizer ✨</h1>
+  <p>Longest Substring Without Repeating Characters</p>
+</header>
+
+<div class="main">
+
+  <div class="input-section">
+    <input type="text" id="inputString" placeholder="Enter string (abcabcbb)">
+  </div>
+
+  <div class="controls">
+    <button onclick="start()">Start ▶</button>
+    <button onclick="nextStep()" id="stepBtn" disabled>Next Step ⏭</button>
+    <button onclick="pause()" id="pauseBtn" disabled>Pause ⏸</button>
+    <button onclick="restart()">Restart 🔄</button>
+    <br><br>
+    <label>
+      <input type="checkbox" id="stepMode" onchange="toggleMode()">
+      Step-by-step Mode
+    </label>
+    <br><br>
+    Speed:
+    <input type="range" min="400" max="1500" value="1000" id="speedRange">
+  </div>
+
+  <div class="action" id="action">
+    Enter a string and click Start 🌸
+  </div>
+
+  <div class="container" id="visual"></div>
+
+  <div class="info">
+    <p>Left Pointer: <b><span id="left">0</span></b></p>
+    <p>Right Pointer: <b><span id="right">0</span></b></p>
+    <p>Current Window: <b><span id="window"></span></b></p>
+    <p>Max Length: <b><span id="maxLen">0</span></b></p>
+  </div>
+
+</div>
+
+<footer>
+  🌷 Pastel UI • Algorithm Visualization • Hackathon Ready
+</footer>
+
+<script>
+let s="", left=0, right=0, maxLen=0;
+let set=new Set(), interval=null;
+let stepMode=false, started=false;
+
+function start(){
+  clearInterval(interval);
+  s=inputString.value.trim();
+  if(!s) return;
+
+  left=right=maxLen=0;
+  set.clear();
+  started=true;
+  action.textContent="✨ Algorithm started!";
+  render();
+
+  if(stepMode){
+    stepBtn.disabled=false;
+    pauseBtn.disabled=true;
+    runStep();
+  } else {
+    pauseBtn.disabled=false;
+    runAuto();
+  }
+}
+
+function runAuto(){
+  interval=setInterval(runStep, speedRange.value);
+}
+
+function runStep(){
+  if(right>=s.length){
+    action.textContent="🎉 Done! Longest substring found!";
+    clearInterval(interval);
+    return;
+  }
+  let ch=s[right];
+  if(!set.has(ch)){
+    set.add(ch);
+    right++;
+    maxLen=Math.max(maxLen, right-left);
+    action.textContent="🌿 Expanding window →";
+  } else {
+    set.delete(s[left]);
+    left++;
+    action.textContent="⚠ Duplicate found, shrinking ←";
+  }
+  render();
+}
+
+function nextStep(){
+  if(stepMode && started) runStep();
+}
+
+function pause(){
+  clearInterval(interval);
+  action.textContent="⏸ Paused";
+}
+
+function toggleMode(){
+  stepMode=stepModeCheckbox.checked;
+  stepBtn.disabled=!stepMode;
+  pauseBtn.disabled=stepMode;
+  clearInterval(interval);
+}
+
+function restart(){
+  clearInterval(interval);
+  started=false;
+  inputString.value="";
+  visual.innerHTML="";
+  action.textContent="Enter a new string and click Start 🌸";
+  leftSpan.textContent=rightSpan.textContent=maxLenSpan.textContent="0";
+  windowSpan.textContent="";
+}
+
+function render(){
+  visual.innerHTML="";
+  for(let i=0;i<s.length;i++){
+    let box=document.createElement("div");
+    box.className="char-box";
+
+    let c=document.createElement("div");
+    c.className="char";
+    c.textContent=s[i];
+    if(i>=left && i<right) c.classList.add("window");
+    if(i===right && set.has(s[right])) c.classList.add("duplicate");
+
+    let p=document.createElement("div");
+    p.className="pointer";
+    if(i===left) p.textContent="L ↑";
+    else if(i===right) p.textContent="R ↑";
+
+    box.appendChild(c);
+    box.appendChild(p);
+    visual.appendChild(box);
+  }
+  leftSpan.textContent=left;
+  rightSpan.textContent=right;
+  windowSpan.textContent=s.substring(left,right);
+  maxLenSpan.textContent=maxLen;
+}
+
+/* ELEMENT SHORTCUTS */
+const inputString=document.getElementById("inputString");
+const visual=document.getElementById("visual");
+const action=document.getElementById("action");
+const stepBtn=document.getElementById("stepBtn");
+const pauseBtn=document.getElementById("pauseBtn");
+const speedRange=document.getElementById("speedRange");
+const stepModeCheckbox=document.getElementById("stepMode");
+const leftSpan=document.getElementById("left");
+const rightSpan=document.getElementById("right");
+const windowSpan=document.getElementById("window");
+const maxLenSpan=document.getElementById("maxLen");
+</script>
+
+</body>
+</html>
+
+
+
+
