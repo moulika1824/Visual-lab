@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sliding Window – Substrings a,b,c</title>
+
+<style>
+:root{
+  --green:#C7E59F;
+  --cream:#FBF8DC;
+  --lpink:#FDE2EA;
+  --rpink:#F7A1B2;
+  --dark:#3A2E2E;
+  --white:#ffffff;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:'Segoe UI',sans-serif;
+  background:linear-gradient(135deg,var(--green),var(--cream));
+  color:var(--dark);
+}
+
+/* HEADER */
+header{
+  background:var(--rpink);
+  color:white;
+  text-align:center;
+  padding:18px;
+  font-size:22px;
+  font-weight:600;
+}
+
+/* LAYOUT */
+.container{
+  max-width:1100px;
+  margin:30px auto;
+  padding:0 20px;
+}
+
+.card{
+  background:var(--white);
+  border-radius:16px;
+  padding:22px;
+  box-shadow:0 10px 25px rgba(0,0,0,.12);
+  margin-bottom:22px;
+}
+
+/* INPUT */
+input[type=text]{
+  padding:10px;
+  width:260px;
+  font-size:16px;
+  border-radius:8px;
+  border:2px solid var(--rpink);
+}
+
+/* BUTTONS */
+button{
+  padding:10px 16px;
+  border:none;
+  border-radius:8px;
+  background:var(--rpink);
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+  transition:.25s;
+}
+button:hover{
+  transform:translateY(-2px);
+  background:#f58fa5;
+}
+
+/* CONTROLS */
+.controls{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+
+/* WINDOW */
+.window{
+  display:flex;
+  justify-content:center;
+  margin-top:25px;
+  overflow-x:auto;
+}
+
+.cell{
+  margin:6px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  min-width:65px;
+}
+
+.pointer{
+  height:32px;
+  font-size:12px;
+  font-weight:bold;
+}
+
+.leftPtr{ color:#C62828; }
+.rightPtr{ color:#2E7D32; }
+
+.box{
+  width:58px;
+  height:58px;
+  line-height:58px;
+  border-radius:10px;
+  background:var(--lpink);
+  font-size:22px;
+  transition:.3s;
+}
+
+.active{
+  background:var(--rpink);
+  color:white;
+  box-shadow:0 0 15px var(--rpink);
+  transform:scale(1.05);
+}
+
+/* INFO */
+.info{
+  display:flex;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  margin-top:14px;
+  font-weight:500;
+}
+
+/* EXPLAIN */
+.panel{
+  background:var(--lpink);
+  margin-top:18px;
+  padding:16px;
+  border-radius:12px;
+  min-height:50px;
+}
+
+/* RESULT */
+.result{
+  margin-top:20px;
+  background:var(--rpink);
+  color:white;
+  padding:18px;
+  border-radius:14px;
+  display:none;
+}
+
+.substr{
+  background:white;
+  color:var(--dark);
+  padding:6px 10px;
+  border-radius:8px;
+  margin:6px;
+  display:inline-block;
+  font-weight:600;
+}
+
+.inc{ color:#2E7D32; font-weight:700; }
+.dec{ color:#C62828; font-weight:700; }
+
+footer{
+  text-align:center;
+  padding:14px;
+  opacity:.6;
+}
+</style>
+</head>
+
+<body>
+
+<header>✨ Substrings Containing a, b & c – Visualizer ✨</header>
+
+<div class="container">
+
+<div class="card controls">
+  <input id="str" type="text" placeholder="Enter string (aaabc)">
+  <label><input type="checkbox" id="stepMode"> Step-by-Step</label>
+  <button onclick="start()">▶ Start</button>
+  <button onclick="pause()">⏸ Pause</button>
+  <button onclick="nextStep()">⏭ Next</button>
+  <button onclick="restart()">🔄 Restart</button>
+  Speed <input type="range" min="300" max="1500" value="900" id="speed">
+</div>
+
+<div class="card">
+  <div class="window" id="window"></div>
+
+  <div class="info">
+    <div>Left 👈 <span id="l">-</span> | Right 👉 <span id="r">-</span></div>
+    <div>
+      a:<span id="ca">0</span>
+      b:<span id="cb">0</span>
+      c:<span id="cc">0</span>
+    </div>
+    <div>Total: <span id="ans">0</span></div>
+  </div>
+
+  <div class="panel" id="explain">Enter string & start 🚀</div>
+  <div class="result" id="finalResult"></div>
+</div>
+
+</div>
+
+<footer>Visual Hackathon Ready 💚💗</footer>
+
+<script>
+let s="", n=0;
+let left=0, right=-1;
+let ca=0, cb=0, cc=0, ans=0;
+let timer=null;
+let phase="expand";
+
+const el=id=>document.getElementById(id);
+
+function draw(){
+  const w=el("window");
+  w.innerHTML="";
+
+  for(let i=0;i<n;i++){
+    const cell=document.createElement("div");
+    cell.className="cell";
+
+    const p=document.createElement("div");
+    p.className="pointer";
+    if(i===left){
+      p.textContent="👇 LEFT";
+      p.classList.add("leftPtr");
+    }
+    if(i===right){
+      p.textContent="RIGHT 👇";
+      p.classList.add("rightPtr");
+    }
+
+    const b=document.createElement("div");
+    b.className="box";
+    b.textContent=s[i];
+    if(i>=left && i<=right) b.classList.add("active");
+
+    cell.append(p,b);
+    w.append(cell);
+  }
+
+  el("l").textContent=left;
+  el("r").textContent=right>=0?right:"-";
+  el("ca").textContent=ca;
+  el("cb").textContent=cb;
+  el("cc").textContent=cc;
+  el("ans").textContent=ans;
+}
+
+function add(ch){
+  if(ch==='a'){ ca++; el("explain").innerHTML=`RIGHT 👉 added '${ch}' → <span class="inc">a++</span>`; }
+  if(ch==='b'){ cb++; el("explain").innerHTML=`RIGHT 👉 added '${ch}' → <span class="inc">b++</span>`; }
+  if(ch==='c'){ cc++; el("explain").innerHTML=`RIGHT 👉 added '${ch}' → <span class="inc">c++</span>`; }
+}
+
+function remove(ch){
+  if(ch==='a'){ ca--; el("explain").innerHTML=`LEFT 👈 removed '${ch}' → <span class="dec">a--</span>`; }
+  if(ch==='b'){ cb--; el("explain").innerHTML=`LEFT 👈 removed '${ch}' → <span class="dec">b--</span>`; }
+  if(ch==='c'){ cc--; el("explain").innerHTML=`LEFT 👈 removed '${ch}' → <span class="dec">c--</span>`; }
+}
+
+function step(){
+  if(phase==="expand"){
+    if(right+1<n){
+      right++;
+      add(s[right]);
+      if(ca>0 && cb>0 && cc>0){
+        el("explain").innerHTML+=`<br>✅ Valid window found`;
+        phase="shrink";
+      }
+    }else finish();
+  }else{
+    ans+=(n-right);
+    el("explain").innerHTML+=`<br>✨ Count ${n-right} substrings`;
+    remove(s[left]);
+    left++;
+    if(!(ca>0 && cb>0 && cc>0)){
+      el("explain").innerHTML+=`<br>❌ Window invalid`;
+      phase="expand";
+    }
+  }
+  draw();
+}
+
+function start(){
+  if(!s){
+    s=el("str").value.trim();
+    if(!s) return alert("Enter a string");
+    n=s.length;
+  }
+  if(el("stepMode").checked){
+    el("explain").textContent="Step-by-step ON ☑️ Click Next";
+    return;
+  }
+  pause();
+  timer=setInterval(step, el("speed").value);
+}
+
+function pause(){ clearInterval(timer); }
+
+function nextStep(){
+  if(el("stepMode").checked) step();
+}
+
+function restart(){ location.reload(); }
+
+function finish(){
+  pause();
+  let list=[];
+  for(let i=0;i<n;i++){
+    let a=0,b=0,c=0;
+    for(let j=i;j<n;j++){
+      if(s[j]=='a')a++;
+      if(s[j]=='b')b++;
+      if(s[j]=='c')c++;
+      if(a&&b&&c) list.push(s.slice(i,j+1));
+    }
+  }
+  el("finalResult").style.display="block";
+  el("finalResult").innerHTML=
+    `🎉 Total Substrings: <b>${list.length}</b><br><br>` +
+    list.map(x=>`<span class="substr">${x}</span>`).join("");
+}
+</script>
+
+</body>
+</html>
+
+
