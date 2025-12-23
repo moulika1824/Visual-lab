@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Edit Distance Visualizer</title>
+
+<style>
+:root{
+  --bg:#E7DEAF;
+  --card:#ffffff;
+  --soft:#73AF6F;
+  --highlight:#D7C097;
+  --stored:#73AF6F;
+  --index:#D7C097;
+  --accent:#007E6E;
+  --border:#9aa;
+}
+
+*{ box-sizing:border-box }
+
+body{
+  margin:0;
+  font-family:Segoe UI, Arial, sans-serif;
+  background:var(--bg);
+}
+
+/* HEADER */
+header{
+  background:linear-gradient(135deg,#007E6E,#73AF6F);
+  color:white;
+  padding:20px;
+  text-align:center;
+}
+
+/* LAYOUT */
+.container{
+  max-width:1200px;
+  margin:30px auto;
+  padding:0 20px;
+}
+
+.card{
+  background:var(--card);
+  border-radius:18px;
+  padding:22px;
+  margin-bottom:25px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.12);
+}
+
+/* CONTROLS */
+.controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  justify-content:center;
+}
+
+input,button,select{
+  padding:9px 12px;
+  font-size:15px;
+  border-radius:8px;
+  border:1px solid var(--border);
+}
+
+button{
+  background:var(--accent);
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+}
+button:hover{
+  opacity:0.9;
+}
+
+/* CHAR BOX */
+.char{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:36px;
+  height:36px;
+  margin:4px;
+  border-radius:8px;
+  background:var(--soft);
+  color:white;
+  font-weight:700;
+}
+
+.string-row{
+  display:flex;
+  flex-wrap:wrap;
+}
+
+.active{
+  background:var(--highlight);
+  color:#333;
+}
+.stored{
+  background:#007E6E;
+  color:white;
+}
+
+/* DP TABLE */
+table{
+  margin:auto;
+  border-collapse:collapse;
+}
+td{
+  width:38px;
+  height:38px;
+  border:1px solid var(--border);
+  text-align:center;
+  font-weight:700;
+}
+
+td.indexCell{
+  background:var(--index);
+}
+
+td.activeCell{
+  background:var(--highlight);
+}
+
+/* INFO */
+#info,#result{
+  text-align:center;
+  font-weight:700;
+  margin-top:12px;
+}
+#output{
+  margin-top:12px;
+  padding:14px;
+  background:var(--accent);
+  color:white;
+  border-radius:12px;
+  text-align:center;
+  font-weight:700;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h2>Edit Distance – Correct DP Indices</h2>
+  <p>Clean • Correct • Hackathon Ready</p>
+</header>
+
+<div class="container">
+
+<!-- INPUT -->
+<div class="card">
+  <div class="controls">
+    <input id="s1" placeholder="Source String">
+    <input id="s2" placeholder="Target String">
+
+    <label>
+      <input type="checkbox" id="stepMode"> Step-by-step
+    </label>
+
+    <select id="speed">
+      <option value="1200">Slow</option>
+      <option value="700" selected>Medium</option>
+      <option value="350">Fast</option>
+    </select>
+
+    <button onclick="start()">Start</button>
+    <button onclick="nextStep()">Next Step</button>
+    <button onclick="play()">Play</button>
+    <button onclick="pause()">Pause</button>
+    <button onclick="restart()">Restart</button>
+  </div>
+</div>
+
+<!-- STRINGS -->
+<div class="card">
+  <b>Source String</b>
+  <div id="source" class="string-row"></div>
+
+  <b>Target String</b>
+  <div id="target" class="string-row"></div>
+
+  <b>Stored Matches</b>
+  <div id="stored" class="string-row"></div>
+</div>
+
+<!-- DP TABLE -->
+<div class="card">
+  <b>DP Table (Indices Only)</b>
+  <div id="dpTable"></div>
+</div>
+
+<!-- INFO -->
+<div class="card">
+  <div id="info"></div>
+  <div id="result"></div>
+  <div id="output"></div>
+</div>
+
+</div>
+
+<script>
+let steps=[], idx=0, timer=null;
+let storedMatches=[], dp=[], minOps=0;
+let a="", b="";
+
+function start(){
+  pause();
+  a=s1.value;
+  b=s2.value;
+  if(!a || !b){ alert("Enter both strings"); return; }
+
+  steps=[]; idx=0; storedMatches=[];
+  const m=a.length, n=b.length;
+
+  dp = Array(m+1).fill().map(()=>Array(n+1).fill(0));
+
+  for(let i=0;i<=m;i++) dp[i][0]=i;
+  for(let j=0;j<=n;j++) dp[0][j]=j;
+
+  for(let i=1;i<=m;i++){
+    for(let j=1;j<=n;j++){
+      if(a[i-1]===b[j-1]){
+        dp[i][j]=dp[i-1][j-1];
+        steps.push({i,j,type:"match",char:a[i-1]});
+      }else{
+        dp[i][j]=1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+        steps.push({i,j,type:"change"});
+      }
+    }
+  }
+
+  minOps=dp[m][n];
+  renderAll(null);
+}
+
+function renderAll(step){
+  renderStrings(step);
+  renderStored();
+  renderDP(step);
+}
+
+function renderStrings(step){
+  source.innerHTML="";
+  target.innerHTML="";
+
+  [...a].forEach((c,i)=>{
+    let s=document.createElement("span");
+    s.className="char"+(step && i===step.i-1?" active":"");
+    s.innerText=c;
+    source.appendChild(s);
+  });
+
+  [...b].forEach((c,j)=>{
+    let s=document.createElement("span");
+    s.className="char"+(step && j===step.j-1?" active":"");
+    s.innerText=c;
+    target.appendChild(s);
+  });
+}
+
+function renderStored(){
+  stored.innerHTML="";
+  storedMatches.forEach(c=>{
+    let s=document.createElement("span");
+    s.className="char stored";
+    s.innerText=c;
+    stored.appendChild(s);
+  });
+}
+
+/* DP TABLE — INDICES ONLY */
+function renderDP(step){
+  let html="<table>";
+
+  html+="<tr><td class='indexCell'></td>";
+  for(let j=0;j<dp[0].length;j++){
+    html+=`<td class="indexCell">${j}</td>`;
+  }
+  html+="</tr>";
+
+  for(let i=0;i<dp.length;i++){
+    html+="<tr>";
+    html+=`<td class="indexCell">${i}</td>`;
+    for(let j=0;j<dp[0].length;j++){
+      let cls = (step && step.i===i && step.j===j) ? "activeCell" : "";
+      html+=`<td class="${cls}">${dp[i][j]}</td>`;
+    }
+    html+="</tr>";
+  }
+
+  html+="</table>";
+  dpTable.innerHTML=html;
+}
+
+function nextStep(){
+  if(idx>=steps.length){
+    result.innerText="Minimum Operations = "+minOps;
+    output.innerText=`"${a}" → "${b}" completed`;
+    pause(); return;
+  }
+  const step=steps[idx];
+  renderAll(step);
+  if(step.type==="match") storedMatches.push(step.char);
+  idx++;
+}
+
+function play(){
+  if(stepMode.checked) return;
+  pause();
+  timer=setInterval(nextStep,Number(speed.value));
+}
+function pause(){ clearInterval(timer); }
+function restart(){ location.reload(); }
+</script>
+
+</body>
+</html>
+
+
+
+
